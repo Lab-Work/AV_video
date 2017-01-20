@@ -366,7 +366,7 @@ def main(argv):
     samples = [500]  # one set takes 2.75 hr
     
     PRsetTest = [75]
-    sensorLocationSeed = [2352,59230]
+    sensorLocationSeed = [3252,59230]
     # PRsetTest = [100]
     # sensorLocationSeed = [24654,45234]
 
@@ -379,14 +379,14 @@ def main(argv):
         for i in range(0, 10):
             # only run one time
 
-            directorySave = os.getcwd() + '/Result/Estimation_corrected_10/'
+            directorySave = os.getcwd() + '/Result/PF_{0}/'.format(i)
 
             if not exists(directorySave):
                 os.makedirs(directorySave)
 
             t_start = time.time()
 
-            run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorLocationSeed)
+            run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorLocationSeed, PRsetTest)
 
             t_end = time.time()
 
@@ -414,3 +414,7 @@ def main(argv):
             #
             # '''
 
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

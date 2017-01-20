@@ -386,7 +386,7 @@ def main(argv):
 
             t_start = time.time()
 
-            run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorLocationSeed)
+            run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorLocationSeed, PRsetTest)
 
             t_end = time.time()
 
@@ -414,3 +414,7 @@ def main(argv):
             #
             # '''
 
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

@@ -7,8 +7,8 @@ num_intervals:12
 interval_duration:300
 detection_cycle:20
 sim_replication:1377
-sim_scenarios:75
-sim_seeds:59230,3252
+sim_scenarios:100
+sim_seeds:24654,45234
 # ===========================================
 fd_scenarios:1,10,20,30,40,50,60,70,80,90,99
 reps_to_skip:669,687,1209,1203,797,798,1271
