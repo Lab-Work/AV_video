@@ -1,0 +1,4 @@
+This folder contains the estimation results for generating the video for the following scenarios:
+
+U(0,75), seeds:2352,59230
+U(0,100), seeds:24654,45234

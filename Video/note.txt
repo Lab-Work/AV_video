@@ -1,0 +1,1 @@
+This folder contains a copy of the estimation results for scenarios which will be rendered into a video.
