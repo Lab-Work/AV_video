@@ -2,6 +2,7 @@ import sys
 import time
 from collections import OrderedDict
 from os.path import exists
+import os
 import sqlite3
 import csv
 
@@ -39,163 +40,169 @@ plot_traj = True
 
 def main(argv):
 
-    # =================================================================
-    # the trajectory file
-    traj_file = '../Simulation/traj_data/sim_sce100_seed45234.csv'
-    veh_type_file = '../Simulation/traj_data/sim_sce100_seed45234_vehtype.csv'
+    sce_seeds = [(75, 3252), (75, 59230), (100, 24654), (100, 45234)]
 
-    est_density_prefix = '../Estimation/Result/Estimation_paper_rv/Video/Video_sce100_seed45234_data/EstimationDensity_PR_100_Seed45234_'
-    est_w_prefix = '../Estimation/Result/Estimation_paper_rv/Video/Video_sce100_seed45234_data/EstimationW_PR_100_Seed45234_'
-    true_density_file = '../Estimation/Result/Estimation_paper_rv/Video/Video_sce100_seed45234_data/TrueDensity_PR_100_Seed45234_2nd.npy'
-    true_w_file = '../Estimation/Result/Estimation_paper_rv/Video/Video_sce100_seed45234_data/TrueW_PR_100_seed45234.npy'
+    for sce, seed in sce_seeds:
 
-    save_dir = '../Estimation/Result/Estimation_paper_rv/Video/Video_sce100_seed45234_data/pics/'
+        # =================================================================
+        # the trajectory file
+        traj_file = '../Simulation/traj_data/sim_sce{0}_seed{1}.csv'.format(sce, seed)
+        veh_type_file = '../Simulation/traj_data/sim_sce{0}_seed{1}_vehtype.csv'.format(sce, seed)
 
-    # =================================================================
-    # load all the data
-    true_density = np.load(true_density_file)
-    true_w = np.load(true_w_file)
-    est_density_1st = []
-    est_density_2nd = []
-    est_w_2nd = []
+        est_density_prefix = '../Video/Video_sce{0}_seed{1}_data/EstimationDensity_PR_{0}_Seed{1}_'.format(sce, seed)
+        est_w_prefix = '../Video/Video_sce{0}_seed{1}_data/EstimationW_PR_{0}_Seed{1}_'.format(sce, seed)
+        true_density_file = '../Video/Video_sce{0}_seed{1}_data/TrueDensity_PR_{0}_Seed{1}.npy'.format(sce, seed)
+        true_w_file = '../Video/Video_sce{0}_seed{1}_data/TrueW_PR_{0}_seed{1}.npy'.format(sce, seed)
 
-    print('Loading estimation results...')
-    for run in range(0, 10):
-        est_density_1st.append(np.load(est_density_prefix+'1st_'+'{0}.npy'.format(run)))
-        est_density_2nd.append(np.load(est_density_prefix+'2nd_'+'{0}.npy'.format(run)))
-        est_w_2nd.append(np.load(est_w_prefix+'2nd_'+'{0}.npy'.format(run)))
-    est_density_1st = np.asarray(est_density_1st)
-    est_density_2nd = np.asarray(est_density_2nd)
-    est_w_2nd = np.asarray(est_w_2nd)
+        save_dir = '../Video/Video_sce{0}_seed{1}_data/pics/'.format(sce, seed)
 
-    # get the mean of 10 runs
-    mean_density_1st = np.mean(est_density_1st, 0)
-    mean_density_2nd = np.mean(est_density_2nd, 0)
-    mean_w_2nd = np.mean(est_w_2nd, 0)
-    print('Loaded estimation results with shape: 1st_rho {0}, 2nd_rho {1}, 2nd_2 {2}.\n'.format(est_density_1st.shape,
-                                                                                                est_density_2nd.shape,
-                                                                                                est_w_2nd.shape))
-    # get the trajectory
-    print('Loading vehicle trajectory...')
-    veh_type = get_veh_type(veh_type_file)
-    if plot_traj:
-        snaps = get_snapshot(traj_file, veh_type, time_step=5.0)
-    print('\nLoaded vehicle trajectory.\n')
+        os.mkdir(save_dir)
 
-    # =================================================================
-    # for each time step, plot one figure and save the figure in save_dir
-    # test_t = [15000]
-    for t in sorted(snaps.keys()):
-    # for t in test_t:
-        # note, t is integer, unit 0.1s
-        f, axarr = plt.subplots(3, sharex=True, figsize=(18,10))
+        # =================================================================
+        # load all the data
+        true_density = np.load(true_density_file)
+        true_w = np.load(true_w_file)
+        est_density_1st = []
+        est_density_2nd = []
+        est_w_2nd = []
 
-        # --------------------------------------------------
-        # plot the density
-        t_row = int(t/10.0/dt)
-        x_grid = np.arange(0, dx*(num_cells+1), dx)
+        print('Loading estimation results...')
+        for run in range(0, 10):
+            est_density_1st.append(np.load(est_density_prefix+'1st_'+'{0}.npy'.format(run)))
+            est_density_2nd.append(np.load(est_density_prefix+'2nd_'+'{0}.npy'.format(run)))
+            est_w_2nd.append(np.load(est_w_prefix+'2nd_'+'{0}.npy'.format(run)))
+        est_density_1st = np.asarray(est_density_1st)
+        est_density_2nd = np.asarray(est_density_2nd)
+        est_w_2nd = np.asarray(est_w_2nd)
 
-        axarr[0].step(x_grid, np.concatenate([[0], mean_density_1st[t_row, :]]), color='b', linewidth=2, label='1st')
-        axarr[0].step(x_grid, np.concatenate([[0], mean_density_2nd[t_row, :]]), color='g', linewidth=2, label='2nd')
-        axarr[0].step(x_grid, np.concatenate([[0], true_density[t_row, :]]), color='r', linewidth=2, label='true')
-
-        axarr[0].set_title('Estimated density', fontsize=20)
-        axarr[0].set_ylabel('Density (veh/mile)')
-        axarr[0].set_xlim([0, dx*num_cells])
-        axarr[0].set_ylim([0, 850])
-        axarr[0].set_xticks([0, dx*9, dx*18, dx*27])
-        axarr[0].set_xticklabels(['0', '1', '2', '3'])
-        axarr[0].legend(ncol=3)
-        text_str = 'Time: {0} s'.format(int(t/10.0))
-        axarr[0].annotate(text_str, xy=(0.05, 0.88), xycoords='axes fraction', fontsize=16)
-
-        # --------------------------------------------------
-        # plot the penetration rate
-        axarr[1].step(x_grid, 100.0*np.concatenate([[0], mean_w_2nd[t_row, :]]), color='g', linewidth=2, label='2nd')
-        axarr[1].step(x_grid, 100.0*np.concatenate([[0], true_w[t_row, :]]), color='r', linewidth=2, label='true')
-        axarr[1].set_ylim([0, 100])
-        axarr[1].set_ylabel('AV fraction (%)')
-        axarr[1].legend(ncol=2)
-        axarr[1].set_title('Fraction of AVs', fontsize=20)
-        text_str = 'Time: {0} s'.format(int(t/10.0))
-        axarr[1].annotate(text_str, xy=(0.05, 0.88), xycoords='axes fraction', fontsize=16)
-
-        # --------------------------------------------------
-        # plot simulation
-        # plot lanes
-        axarr[2].plot([0, dx*num_cells], [2, 2], 'k', linewidth=2)
-        axarr[2].plot([0, dx*num_cells], [5, 5], color='k', linestyle='--', linewidth=2)
-        axarr[2].plot([0, dx*num_cells], [8, 8], 'k', linewidth=2)
-
-        # plot detectors
-        # axarr[2].plot([5, 5], [0, 10], 'b', linewidth=3)
-        # axarr[2].plot([dx*9, dx*9], [0, 10], 'b', linewidth=3)
-        # axarr[2].plot([dx*18, dx*18], [0, 10], 'b', linewidth=3)
-        # axarr[2].plot([dx*27-5, dx*27-5], [0, 10], 'b', linewidth=3)
-        # axarr[2].annotate('Detectors', xy=(0.14, 0.015), xycoords='axes fraction')
-        # axarr[2].annotate('Detectors', xy=(0.8, 0.015), xycoords='axes fraction')
-        # axarr[2].annotate('', xy=(0.005, 0.05), xycoords='axes fraction',
-        #                   xytext=(0.135, 0.05), textcoords='axes fraction',
-        #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
-        # axarr[2].annotate('', xy=(0.33, 0.05), xycoords='axes fraction',
-        #                   xytext=(0.203, 0.05), textcoords='axes fraction',
-        #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
-        # axarr[2].annotate('', xy=(0.67, 0.05), xycoords='axes fraction',
-        #                   xytext=(0.79, 0.05), textcoords='axes fraction',
-        #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
-        # axarr[2].annotate('', xy=(0.995, 0.05), xycoords='axes fraction',
-        #                   xytext=(0.865, 0.05), textcoords='axes fraction',
-        #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
-        axarr[2].set_xlabel('Space (mile)', fontsize=18)
-        axarr[2].set_ylim([0, 10])
-        axarr[2].set_ylabel('Lane ID')
-        axarr[2].set_yticks([3.5, 6.5])
-        axarr[2].set_yticklabels(['1', '2'])
-        axarr[2].set_title('Aimsun simulation', fontsize=20)
-
-        text_str = 'Time: {0} s'.format(int(t/10.0))
-        axarr[2].annotate(text_str, xy=(0.05, 0.88), xycoords='axes fraction', fontsize=16)
-
-        # vehicle annotation
-        dot_size = 80
-        axarr[2].scatter([dx*20], [1], color='r', s=dot_size)
-        axarr[2].annotate('AV', xy=(0.75, 0.06), xycoords='axes fraction', fontsize=16)
-        axarr[2].scatter([dx*23], [1], color='b', s=dot_size)
-        axarr[2].annotate('Car', xy=(0.86, 0.06), xycoords='axes fraction', fontsize=16)
-
+        # get the mean of 10 runs
+        mean_density_1st = np.mean(est_density_1st, 0)
+        mean_density_2nd = np.mean(est_density_2nd, 0)
+        mean_w_2nd = np.mean(est_w_2nd, 0)
+        print('Loaded estimation results with shape: 1st_rho {0}, 2nd_rho {1}, 2nd_2 {2}.\n'.format(est_density_1st.shape,
+                                                                                                    est_density_2nd.shape,
+                                                                                                    est_w_2nd.shape))
+        # get the trajectory
+        print('Loading vehicle trajectory...')
+        veh_type = get_veh_type(veh_type_file)
         if plot_traj:
-            # plot each vehicle as a dot
-            snapshot = np.asarray(snaps[t])
-            car_idx = (snapshot[:, 1] == car_id)
-            av_idx = (snapshot[:, 1] == av_id)
-            lane1_idx = (snapshot[:, 2] == 1)
-            lane2_idx = (snapshot[:, 2] == 2)
+            snaps = get_snapshot(traj_file, veh_type, time_step=5.0)
+        print('\nLoaded vehicle trajectory.\n')
 
-            # cars on lane 1
-            idx = (car_idx & lane1_idx)
-            dists = snapshot[idx, 3]
-            axarr[2].scatter(dists, 3.25*np.ones(len(dists)), color='b', s=dot_size)
+        # =================================================================
+        # for each time step, plot one figure and save the figure in save_dir
+        # test_t = [15000]
+        for t in sorted(snaps.keys()):
+        # for t in test_t:
+            # note, t is integer, unit 0.1s
+            f, axarr = plt.subplots(3, sharex=True, figsize=(18,10))
 
-            # cars on lane 2
-            idx = (car_idx & lane2_idx)
-            dists = snapshot[idx, 3]
-            axarr[2].scatter(dists, 6.25*np.ones(len(dists)), color='b', s=dot_size)
+            # --------------------------------------------------
+            # plot the density
+            t_row = int(t/10.0/dt)
+            x_grid = np.arange(0, dx*(num_cells+1), dx)
 
-            # avs on lane 1
-            idx = (av_idx & lane1_idx)
-            dists = snapshot[idx, 3]
-            axarr[2].scatter(dists, 3.75*np.ones(len(dists)), color='r', s=dot_size)
+            axarr[0].step(x_grid, np.concatenate([[0], mean_density_1st[t_row, :]]), color='b', linewidth=2, label='1st')
+            axarr[0].step(x_grid, np.concatenate([[0], mean_density_2nd[t_row, :]]), color='g', linewidth=2, label='2nd')
+            axarr[0].step(x_grid, np.concatenate([[0], true_density[t_row, :]]), color='r', linewidth=2, label='true')
 
-            # avs on lane 2
-            idx = (av_idx & lane2_idx)
-            dists = snapshot[idx, 3]
-            axarr[2].scatter(dists, 6.75*np.ones(len(dists)), color='r', s=dot_size)
+            axarr[0].set_title('Estimated density', fontsize=20)
+            axarr[0].set_ylabel('Density (veh/mile)')
+            axarr[0].set_xlim([0, dx*num_cells])
+            axarr[0].set_ylim([0, 850])
+            axarr[0].set_xticks([0, dx*9, dx*18, dx*27])
+            axarr[0].set_xticklabels(['0', '1', '2', '3'])
+            axarr[0].legend(ncol=3)
+            text_str = 'Time: {0} s'.format(int(t/10.0))
+            axarr[0].annotate(text_str, xy=(0.05, 0.88), xycoords='axes fraction', fontsize=16)
 
-        # --------------------------------------------------
-        # save in folder
-        plt.savefig(save_dir + '{0:05d}.png'.format(int(t)), bbox_inches='tight')
-        plt.clf()
-        plt.close()
+            # --------------------------------------------------
+            # plot the penetration rate
+            axarr[1].step(x_grid, 100.0*np.concatenate([[0], mean_w_2nd[t_row, :]]), color='g', linewidth=2, label='2nd')
+            axarr[1].step(x_grid, 100.0*np.concatenate([[0], true_w[t_row, :]]), color='r', linewidth=2, label='true')
+            axarr[1].set_ylim([0, 100])
+            axarr[1].set_ylabel('AV fraction (%)')
+            axarr[1].legend(ncol=2)
+            axarr[1].set_title('Fraction of AVs', fontsize=20)
+            text_str = 'Time: {0} s'.format(int(t/10.0))
+            axarr[1].annotate(text_str, xy=(0.05, 0.88), xycoords='axes fraction', fontsize=16)
+
+            # --------------------------------------------------
+            # plot simulation
+            # plot lanes
+            axarr[2].plot([0, dx*num_cells], [2, 2], 'k', linewidth=2)
+            axarr[2].plot([0, dx*num_cells], [5, 5], color='k', linestyle='--', linewidth=2)
+            axarr[2].plot([0, dx*num_cells], [8, 8], 'k', linewidth=2)
+
+            # plot detectors
+            # axarr[2].plot([5, 5], [0, 10], 'b', linewidth=3)
+            # axarr[2].plot([dx*9, dx*9], [0, 10], 'b', linewidth=3)
+            # axarr[2].plot([dx*18, dx*18], [0, 10], 'b', linewidth=3)
+            # axarr[2].plot([dx*27-5, dx*27-5], [0, 10], 'b', linewidth=3)
+            # axarr[2].annotate('Detectors', xy=(0.14, 0.015), xycoords='axes fraction')
+            # axarr[2].annotate('Detectors', xy=(0.8, 0.015), xycoords='axes fraction')
+            # axarr[2].annotate('', xy=(0.005, 0.05), xycoords='axes fraction',
+            #                   xytext=(0.135, 0.05), textcoords='axes fraction',
+            #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
+            # axarr[2].annotate('', xy=(0.33, 0.05), xycoords='axes fraction',
+            #                   xytext=(0.203, 0.05), textcoords='axes fraction',
+            #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
+            # axarr[2].annotate('', xy=(0.67, 0.05), xycoords='axes fraction',
+            #                   xytext=(0.79, 0.05), textcoords='axes fraction',
+            #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
+            # axarr[2].annotate('', xy=(0.995, 0.05), xycoords='axes fraction',
+            #                   xytext=(0.865, 0.05), textcoords='axes fraction',
+            #                   arrowprops=dict(arrowstyle="->", connectionstyle='arc3'))
+            axarr[2].set_xlabel('Space (mile)', fontsize=18)
+            axarr[2].set_ylim([0, 10])
+            axarr[2].set_ylabel('Lane ID')
+            axarr[2].set_yticks([3.5, 6.5])
+            axarr[2].set_yticklabels(['1', '2'])
+            axarr[2].set_title('Aimsun simulation', fontsize=20)
+
+            text_str = 'Time: {0} s'.format(int(t/10.0))
+            axarr[2].annotate(text_str, xy=(0.05, 0.88), xycoords='axes fraction', fontsize=16)
+
+            # vehicle annotation
+            dot_size = 80
+            axarr[2].scatter([dx*20], [1], color='r', s=dot_size)
+            axarr[2].annotate('AV', xy=(0.75, 0.06), xycoords='axes fraction', fontsize=16)
+            axarr[2].scatter([dx*23], [1], color='b', s=dot_size)
+            axarr[2].annotate('Car', xy=(0.86, 0.06), xycoords='axes fraction', fontsize=16)
+
+            if plot_traj:
+                # plot each vehicle as a dot
+                snapshot = np.asarray(snaps[t])
+                car_idx = (snapshot[:, 1] == car_id)
+                av_idx = (snapshot[:, 1] == av_id)
+                lane1_idx = (snapshot[:, 2] == 1)
+                lane2_idx = (snapshot[:, 2] == 2)
+
+                # cars on lane 1
+                idx = (car_idx & lane1_idx)
+                dists = snapshot[idx, 3]
+                axarr[2].scatter(dists, 3.25*np.ones(len(dists)), color='b', s=dot_size)
+
+                # cars on lane 2
+                idx = (car_idx & lane2_idx)
+                dists = snapshot[idx, 3]
+                axarr[2].scatter(dists, 6.25*np.ones(len(dists)), color='b', s=dot_size)
+
+                # avs on lane 1
+                idx = (av_idx & lane1_idx)
+                dists = snapshot[idx, 3]
+                axarr[2].scatter(dists, 3.75*np.ones(len(dists)), color='r', s=dot_size)
+
+                # avs on lane 2
+                idx = (av_idx & lane2_idx)
+                dists = snapshot[idx, 3]
+                axarr[2].scatter(dists, 6.75*np.ones(len(dists)), color='r', s=dot_size)
+
+            # --------------------------------------------------
+            # save in folder
+            plt.savefig(save_dir + '{0:05d}.png'.format(int(t)), bbox_inches='tight')
+            plt.clf()
+            plt.close()
 
 
 def get_veh_type(veh_type_file):
