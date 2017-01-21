@@ -24,7 +24,8 @@ for sce, seed in sce_seeds:
 			for m in mdl:
 				src = result_dir + 'PF_{0}/Estimation{1}_PR_{2}_Seed{3}_{4}.npy'.format(run, p, sce, seed, m)
 
-				target = video_dir + 'Estimation{0}_PR_{1}_Seed{2}_{3}_{4}.npy'.format(p, sce, seed, m, run)
+				target = video_dir + 'Video_sce{0}_seed{1}_data/'.format(sce, seed)) + \
+							'Estimation{0}_PR_{1}_Seed{2}_{3}_{4}.npy'.format(p, sce, seed, m, run)
 		
 				# copy files
 				shutil.copy(src, target)
@@ -32,7 +33,8 @@ for sce, seed in sce_seeds:
 		if run == 0:
 			# copy the true state
 			src_true = result_dir + 'PF_{0}/TrueDensity_PR_{1}_Seed{2}_1st.npy'.format(run, sce, seed)
-			target_true = video_dir + 'TrueDensity_PR_{0}_Seed{1}.npy'.format(sce, seed)
+			target_true = video_dir + 'Video_sce{0}_seed{1}_data/'.format(sce, seed)) +\
+							 'TrueDensity_PR_{0}_Seed{1}.npy'.format(sce, seed)
 			shutil.copy(src_true, target_true)
 
 
