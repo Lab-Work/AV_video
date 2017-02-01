@@ -10,8 +10,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 """
-This script contains the code for generating a sequence of pictures comparing the performance of the estimators,
-including the microscopic simulation video.
+This script contains the code for generating a sequence of pictures comparing the performance of the estimators.
+The generated video contains three animations in the frame:
+- Top: The density estimation which plots the estimated density by 1st and 2nd model and the true density.
+- Middle: The AV fraction estimation which plots the estimated fraction of AVs by 2nd model and the true fraction of AV.
+- Bottom: The animation of microsimulation in AIMSUN.
+
+This script only plots the average estimates from 10 PF runs.
+
 To combine pictures to a video:
 - install ffmpeg
 - cd to the folder of pics
@@ -40,7 +46,8 @@ plot_traj = True
 
 def main(argv):
 
-    sce_seeds = [(75, 3252), (75, 59230), (100, 24654), (100, 45234)]
+    # sce_seeds = [(75, 3252), (75, 59230), (100, 24654), (100, 45234)]
+    sce_seeds = [(0, 2143)]
 
     for sce, seed in sce_seeds:
 

@@ -3,7 +3,7 @@ import sys
 import time
 from os.path import exists
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from numpy import *
 
@@ -35,7 +35,7 @@ def plot_density(data, bool, savefile, directorySave):
     if bool == True:
         plt.savefig(directorySave + savefile + '.pdf', bbox_inches='tight')
     # plt.show()
-    plt.clf()
+    # plt.clf()
 
 
 def plot_error(data, bool, savefile, directorySave):
@@ -48,7 +48,7 @@ def plot_error(data, bool, savefile, directorySave):
     if bool == True:
         plt.savefig(directorySave + savefile + '.pdf', bbox_inches='tight')
     # plt.show()
-    plt.clf()
+    # plt.clf()
 
 
 def plot_property(data, bool, savefile, directorySave):
@@ -62,7 +62,7 @@ def plot_property(data, bool, savefile, directorySave):
     if bool == True:
         plt.savefig(directorySave + savefile + '.pdf', bbox_inches='tight')
     # plt.show()
-    plt.clf()
+    # plt.clf()
 
 
 def plot_sampleMatch(sampleMatch, bool, savefile, directorySave):
@@ -76,7 +76,7 @@ def plot_sampleMatch(sampleMatch, bool, savefile, directorySave):
     if bool == True:
         plt.savefig(directorySave + savefile + '.pdf', bbox_inches='tight')
     # plt.show()
-    plt.clf()
+    # plt.clf()
 
 
 def compute_likelihood(state, densityMea, densityMeaMean, densityMeaStd, sample, sensorLocation):
@@ -156,6 +156,9 @@ def generate_prRhocDict(PRset, rhoc1st):
 ###############################################################################################################
 
 def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorLocationSeed, PRsetTest):
+
+    __dubug = True
+
     PRset = [0, 5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95, 100]
 
     # PRsetTest = [0, 25, 50, 75, 100]
@@ -165,11 +168,13 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
     ###############################################################################################################
     ## noise parameters
 
+    # TODO: Tuning the noise ===============================
     modelNoiseMean = 0.0
-    modelNoiseStd = 10.0
+    modelNoiseStd = 18.0
 
     densityMeaMean = 0.0
     densityMeaStd = 10.0
+    # TODO: Tuning the noise ===============================
 
     ################################################################################################################
     ## discretization
@@ -180,14 +185,13 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
 
     ################################################################################################################
     ## simulation parameter
-
     Lambda = dt / 3600 / dx
     timeStep = int(3600 / dt)
 
-    trafficModelSet = ['1st', '2nd']
+    # trafficModelSet = ['1st', '2nd']
+    trafficModelSet = ['2nd']
     # sensorLocationSeed = [1355, 2143, 3252, 8763, 12424, 23424, 24232, 24654, 45234, 59230]
     # #sensorLocationSeed = [1355]
-
 
     errorStore = zeros((len(PRsetTest), len(sensorLocationSeed), 2))
     count1 = 0
@@ -200,34 +204,48 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
 
         seedCount = 0
         for seed in sensorLocationSeed:
+            # For each scenario and each simulation
 
             densityTrue = load(directoryLoad + 'TrueDensity_' + str(PR) + '_' + str(seed) + '.npy')
+            wTrue = load(directoryLoad + 'TrueW_PR_' + str(PR) + '_' + 'seed' + str(seed) +'.npy')
             densityMeasurement = load(directoryLoad + 'mea_' + str(PR) + '_' + str(seed) + '.npy')
 
+            # TODO: Replace the noisy detector measurement by Edie's definition =================
+            densityMeasurement[:, 8] = densityTrue[:, 8]
+            densityMeasurement[:, 17] = densityTrue[:, 17]
+            # TODO: Replace the noisy detector measurement by Edie's definition =================
+
             for modelMarker in trafficModelSet:
+                # for two models
 
                 marker = 'PR_' + str(PR) + '_Seed' + str(seed) + '_' + modelMarker
 
-                ################################################################################################################
+                #####################################################################################################
 
                 boundary = load(directoryLoad + 'boundary_' + str(PR) + '_' + str(seed) + '.npy')
+
+                # TODO: Replace the boundary condition by true state in boundary cells by Edie's definition ============
+                boundary[:, 0] = densityTrue[:, 0]
+                boundary[:, 2] = densityTrue[:, -1]
+                boundary[:, 1] = wTrue[:, 0]
+                boundary[:, 3] = wTrue[:, -1]
+                # TODO: Replace the boundary condition by true state in boundary cells by Edie's definition ============
+
                 if modelMarker == '1st':
                     wBoundary1st = rhoc_to_w(fdpNB, PR, prRhocDict)
                     boundary[:, 1] = wBoundary1st
                     boundary[:, 3] = wBoundary1st
 
-                ################################################################################################################
-
-                ## Creat array to save results
+                #####################################################################################################
+                # Create array to save results
                 estimatedState = zeros((timeStep, cellNumber))
                 estimatedw = zeros((timeStep, cellNumber))
 
-                ################################################################################################################
-
-                ## Initialization
+                #####################################################################################################
+                # Initialization
                 state = 1.0 * ones((sample, cellNumber))
                 w = 0.5 * ones((sample, cellNumber))
-                weight = init_weight(sample)
+                weight = init_weight(sample)    # equal weight
 
                 estimatedState[0] = average(state, axis=0)
                 estimatedw[0] = boundary[0, 1] * ones(cellNumber)
@@ -235,15 +253,35 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                 #        start_time = time.time()
                 #
                 for k in range(1, timeStep):
+                # for k in range(0, 330):
+                    print('Estimating step {0}'.format(k))
                     #                if mod(k,100) == 0:
                     #                    print 'this is time step',k
-                    ###############################################################################################################
-                    ## PF            
-
+                    #############################################################################################
+                    # PF
+                    # Set left and right boundary conditions (density(veh/mile), w)
                     bdl = boundary[k, 0], boundary[k, 1]
                     bdr = boundary[k, 2], boundary[k, 3]
+                    _bdl = bdl
+                    _bdr = bdr
+                    # print bdl
+                    # print bdr
 
                     for j in range(sample):
+
+                        # TODO: Added measurement noise to the boundary conditions =================
+                        wMeaMean = 0.0
+                        wMeaStd = 0.01
+                        boundDensMeaMean = 0.0
+                        boundDensMeaStd = 3.0
+
+                        bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                               max([0.0, bdl[1] + random.normal(wMeaMean, wMeaStd)]))
+                        bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                               max([0.0, bdr[1] + random.normal(wMeaMean, wMeaStd)]))
+                        # TODO: Added measurement noise to the boundary conditions =================
+
+                        # eveolve the model prediction
                         state[j], w[j] = ctm_2ql(state[j], w[j], fdpNB, Lambda, bdl, bdr, modelNoiseMean, modelNoiseStd,
                                                  inflow=-1.0, outflow=-1.0)
 
@@ -253,15 +291,35 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                                                                     sample, sensorLocation)
 
                     #                    hasMeasurement = False
-
                     if hasMeasurement:
                         weight = update_weight(likelihood, weight)
-                        state, w = resampling(state, w, sample, cellNumber, weight)
 
-                    weight = init_weight(sample)
+                        # TODO: Analyzing the PF =========================================
+                        if __dubug is True and k >= 60 and k<550:
+                            # plot_sorted_weight(weight, 'Particle weight: {0} step {1}'.format(modelMarker, k))
+                            dens_meas = [_bdl[0], densityMea[8], densityMea[17], _bdr[0]]
+                            w_meas = [_bdl[1], _bdr[1]]
+                            plot_PF_analysis(weight, k, densityTrue, wTrue, state, w, dens_meas, w_meas)
+
+                            if False:
+                                plt.show()
+                            else:
+                                fig_dir = os.getcwd() + '/figs_PF_analysis/'
+                                plt.savefig(fig_dir + '{0:05d}.png'.format(int(k*5)), bbox_inches='tight')
+                                plt.clf()
+                                plt.close()
+                        # TODO: Analyzing the PF =========================================
+
+                        state, w = resampling(state, w, sample, cellNumber, weight)
+                        # TODO: Added model noise to the boundary w =================
+                        w = random.normal(0, 0.01, len(w))
+                        # TODO: Added model noise to the boundary w =================
 
                     estimatedState[k] = average(state, axis=0)
                     estimatedw[k] = average(w, axis=0)
+
+                    # re-assign equal weight
+                    weight = init_weight(sample)
 
                 error = average(abs(estimatedState - densityTrue))
 
@@ -273,9 +331,9 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                 if count2 == 2:
                     count2 = 0
 
-                plot_density(densityTrue, True, 'PlotTrue' + marker, directorySave)
-                plot_density(estimatedState, True, 'PlotEstimationDensity' + marker, directorySave)
-                plot_property(estimatedw, True, 'PlotEstimationW' + marker, directorySave)
+                # plot_density(densityTrue, True, 'PlotTrue' + marker, directorySave)
+                # plot_density(estimatedState, True, 'PlotEstimationDensity' + marker, directorySave)
+                # plot_property(estimatedw, True, 'PlotEstimationW' + marker, directorySave)
                 save(directorySave + 'EstimationDensity_' + marker, estimatedState)
                 save(directorySave + 'EstimationW_' + marker, estimatedw)
                 save(directorySave + 'TrueDensity_' + marker, densityTrue)
@@ -289,9 +347,9 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
 
     errorStoreAveSeed = average(errorStore, axis=1)
 
-    #            
+    #
     # save(directorySave+'ErrorSummary', errorStore)
-    #            
+    #
     plt.rc('xtick', labelsize=20)
     plt.rc('ytick', labelsize=20)
     plt.plot(PRsetTest, errorStoreAveSeed[:, 0], color='b', label='1st model')
@@ -303,7 +361,77 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
     plt.ylim([0, 75])
     plt.savefig(directorySave + 'ErrorSummary.pdf', bbox_inches='tight')
     # plt.show()
-    plt.clf()
+    # plt.clf()
+
+
+def plot_sorted_weight(weight, title):
+    # decreasing
+    sorted_w = sort(weight)[::-1]
+
+    fig = plt.figure(figsize=(6, 6), dpi=100)
+    ax = fig.add_subplot(111)
+    ax.plot(arange(0, len(sorted_w)), sorted_w, color='g', linewidth=2)
+    ax.set_title(title, fontsize=18)
+    ax.set_xlabel('Particle number')
+    ax.set_ylabel('Weight')
+    plt.draw()
+
+
+def plot_PF_analysis(weight, k, true_dens, true_w, est_state, est_w, dens_meas, w_meas):
+
+    fig, (ax0, ax1, ax2) = plt.subplots(3, figsize=(18, 10))
+
+    # ------------------------------------------------------------
+    # ax0 plot the sorted weight
+    sorted_w = sort(weight)[::-1]
+    ax0.plot(arange(0, len(sorted_w)), sorted_w, color='g', linewidth=2)
+    ax0.set_title('Weight: step {0}'.format(k), fontsize=16)
+    # ax0.set_xlabel('Particle number')
+    ax0.set_ylabel('Weight')
+    ax0.set_xlim([0, 500])
+    # ax0.set_ylim([0, 0.3])
+
+    # ------------------------------------------------------------
+    # ax1 plot the true density, estimated density and the bound
+    x_ticks = arange(0, 28)
+    # plot true
+    ax1.step(x_ticks, concatenate([[0], true_dens[k, :]]), color='r', label='True')
+    # estimated
+    ax1.step(x_ticks, concatenate([[0], mean(est_state, 0)]), color='g', label='estimates')
+    ax1.step(x_ticks, concatenate([[0], mean(est_state, 0)-2.0*std(est_state,0)]), linestyle='--',
+             color='g', label='5-95')
+    ax1.step(x_ticks, concatenate([[0], mean(est_state, 0)+2.0*std(est_state,0)]), linestyle='--',
+             color='g')
+    # ax1.legend()
+    ax1.set_title('Density: step {0}'.format(k), fontsize=16)
+    # ax1.set_xlabel('Cell number')
+    ax1.set_ylabel('Density (veh/mile)')
+    ax1.set_xlim([-1, 28])
+    ax1.set_ylim([0, 800])
+
+    # plot the measurement
+    ax1.scatter([0, 9, 18, 27], dens_meas, marker='*', s=80, color='b')
+
+    # ------------------------------------------------------------
+    # ax1 plot the true w, estimated w and the bound
+    x_ticks = arange(0, 28)
+    # plot true
+    ax2.step(x_ticks, 100*concatenate([[0], true_w[k, :]]), color='r', label='True')
+    # estimated
+    ax2.step(x_ticks, 100*concatenate([[0], mean(est_w, 0)]), color='g', label='estimates')
+    ax2.step(x_ticks, 100*concatenate([[0], mean(est_w, 0)-2.0*std(est_w,0)]), linestyle='--',
+             color='g', label='5-95')
+    ax2.step(x_ticks, 100*concatenate([[0], mean(est_w, 0)+2.0*std(est_w,0)]), linestyle='--',
+             color='g')
+    # ax2.legend()
+    ax2.set_title('Penetration: step {0}'.format(k), fontsize=16)
+    # ax2.set_xlabel('Cell number')
+    ax2.set_ylabel('Penetration (veh/mile)')
+    ax2.set_ylim([-10, 150])
+    ax2.set_xlim([-1, 28])
+
+    # plot the measurement
+    ax2.scatter([0, 27], 100.0*array(w_meas), marker='*', s=80, color='b')
 
 
 ###############################################################################################################
@@ -361,11 +489,11 @@ def main(argv):
     # for one replication: 50:5 min; 100: 8 min; 500: 43 min; 1000: 86 min
     # samples = [50, 100, 500, 1000]  # one set takes 2.75 hr
     samples = [500]  # one set takes 2.75 hr
-    
+
     # PRsetTest = [75]
     # sensorLocationSeed = [2352,59230]
     PRsetTest = [100]
-    sensorLocationSeed = [24654,45234]
+    sensorLocationSeed = [24654]
 
 
     # =============================================
@@ -373,7 +501,7 @@ def main(argv):
 
     for sample in samples:
 
-        for i in range(0, 10):
+        for i in range(0, 1):
             # only run one time
 
             directorySave = os.getcwd() + '/Result/PF_{0}/'.format(i)
@@ -395,7 +523,7 @@ def main(argv):
             # plot_density(densityTrue, True, 'state'+marker, directorySave)
 
             #
-            
+
             #
             #        save(directorySave+'state'+marker, estimatedState)
             ##            save(directorySave+'w'+marker, estimatedw)
