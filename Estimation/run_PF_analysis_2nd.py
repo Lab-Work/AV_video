@@ -157,7 +157,7 @@ def generate_prRhocDict(PRset, rhoc1st):
 
 def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorLocationSeed, PRsetTest):
 
-    __dubug = True
+    __dubug = False
 
     PRset = [0, 5, 15, 25, 35, 45, 50, 55, 65, 75, 85, 95, 100]
 
@@ -254,7 +254,9 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                 #
                 for k in range(1, timeStep):
                 # for k in range(0, 330):
-                    print('Estimating step {0}'.format(k))
+                    sys.stdout.write('\r')
+                    sys.stdout.write('Estimating step {0}/{1}'.format(k, timeStep))
+                    sys.stdout.flush()
                     #                if mod(k,100) == 0:
                     #                    print 'this is time step',k
                     #############################################################################################
@@ -275,15 +277,25 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                         boundDensMeaMean = 0.0
                         boundDensMeaStd = 3.0
 
-                        bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
-                               max([0.0, bdl[1] + random.normal(wMeaMean, wMeaStd)]))
-                        bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
-                               max([0.0, bdr[1] + random.normal(wMeaMean, wMeaStd)]))
+                        if modelMarker == '2nd':
+                            bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                                   max([0.0, bdl[1] + random.normal(wMeaMean, wMeaStd)]))
+                            bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                                   max([0.0, bdr[1] + random.normal(wMeaMean, wMeaStd)]))
+                        else:
+                            bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                                   bdl[1])
+                            bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                                   bdr[1])
                         # TODO: Added measurement noise to the boundary conditions =================
 
                         # eveolve the model prediction
                         state[j], w[j] = ctm_2ql(state[j], w[j], fdpNB, Lambda, bdl, bdr, modelNoiseMean, modelNoiseStd,
                                                  inflow=-1.0, outflow=-1.0)
+                        # TODO: Added model noise to the boundary w =================
+                        if modelMarker == '2nd':
+                            w[j] = w[j] + random.normal(0, 0.01, len(w[j]))
+                        # TODO: Added model noise to the boundary w =================
 
                     densityMea = densityMeasurement[k]
 
@@ -311,9 +323,6 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                         # TODO: Analyzing the PF =========================================
 
                         state, w = resampling(state, w, sample, cellNumber, weight)
-                        # TODO: Added model noise to the boundary w =================
-                        w = random.normal(0, 0.01, len(w))
-                        # TODO: Added model noise to the boundary w =================
 
                     estimatedState[k] = average(state, axis=0)
                     estimatedw[k] = average(w, axis=0)
@@ -490,10 +499,11 @@ def main(argv):
     # samples = [50, 100, 500, 1000]  # one set takes 2.75 hr
     samples = [500]  # one set takes 2.75 hr
 
-    # PRsetTest = [75]
-    # sensorLocationSeed = [2352,59230]
-    PRsetTest = [100]
-    sensorLocationSeed = [24654]
+    PRsetTest = [75]
+    sensorLocationSeed = [3252]
+    # sensorLocationSeed = [3252,59230]
+    # PRsetTest = [100]
+    # sensorLocationSeed = [24654]
 
 
     # =============================================
@@ -501,7 +511,7 @@ def main(argv):
 
     for sample in samples:
 
-        for i in range(0, 1):
+        for i in range(0, 10):
             # only run one time
 
             directorySave = os.getcwd() + '/Result/PF_{0}/'.format(i)
