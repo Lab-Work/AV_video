@@ -47,7 +47,8 @@ plot_traj = True
 def main(argv):
 
     # sce_seeds = [(75, 3252), (75, 59230), (100, 24654), (100, 45234)]
-    sce_seeds = [(100, 24654)]
+    # sce_seeds = [(100, 24654)]
+    sce_seeds =[(75, 3252)]
     for sce, seed in sce_seeds:
 
         # =================================================================
@@ -55,12 +56,13 @@ def main(argv):
         traj_file = '../Simulation/traj_data/sim_sce{0}_seed{1}.csv'.format(sce, seed)
         veh_type_file = '../Simulation/traj_data/sim_sce{0}_seed{1}_vehtype.csv'.format(sce, seed)
 
-        est_density_prefix = '../Video/Video_sce{0}_seed{1}_data/EstimationDensity_PR_{0}_Seed{1}_'.format(sce, seed)
-        est_w_prefix = '../Video/Video_sce{0}_seed{1}_data/EstimationW_PR_{0}_Seed{1}_'.format(sce, seed)
-        true_density_file = '../Video/Video_sce{0}_seed{1}_data/TrueDensity_PR_{0}_Seed{1}.npy'.format(sce, seed)
-        true_w_file = '../Video/Video_sce{0}_seed{1}_data/TrueW_PR_{0}_seed{1}.npy'.format(sce, seed)
+        load_dir = '../Video/Video_sce{0}_seed{1}_new_paras/'.format(sce, seed)
+        est_density_prefix = load_dir + 'EstimationDensity_PR_{0}_Seed{1}_'.format(sce, seed)
+        est_w_prefix = load_dir + 'EstimationW_PR_{0}_Seed{1}_'.format(sce, seed)
+        true_density_file = load_dir + 'TrueDensity_PR_{0}_Seed{1}.npy'.format(sce, seed)
+        true_w_file = load_dir + 'TrueW_PR_{0}_seed{1}.npy'.format(sce, seed)
 
-        save_dir = '../Video/Video_sce{0}_seed{1}_data/pics_analysis_smoothed/'.format(sce, seed)
+        save_dir = load_dir + 'pics/'.format(sce, seed)
 
         if not exists(save_dir):
             os.mkdir(save_dir)
@@ -113,21 +115,24 @@ def main(argv):
             t_row = int(t/10.0/dt)
             x_grid = np.arange(0, dx*(num_cells+1), dx)
 
+            # conf_intrvl = 2     # 5/95 for Gaussian
+            conf_intrvl = 1.15  # 5/95 for Gaussian
+
             # first order model
             axarr[0,0].step(x_grid, np.concatenate([[0], mean_density_1st[t_row, :]]),
                             color='b', linewidth=2, label='1st')
-            axarr[0,0].step(x_grid, np.concatenate([[0], mean_density_1st[t_row, :]-2*std_density_1st[t_row,:]]),
+            axarr[0,0].step(x_grid, np.concatenate([[0], mean_density_1st[t_row, :]-conf_intrvl*std_density_1st[t_row,:]]),
                             color='b', linestyle='--', linewidth=2)
-            axarr[0,0].step(x_grid, np.concatenate([[0], mean_density_1st[t_row, :]+2*std_density_1st[t_row,:]]),
+            axarr[0,0].step(x_grid, np.concatenate([[0], mean_density_1st[t_row, :]+conf_intrvl*std_density_1st[t_row,:]]),
                             color='b', linestyle='--', linewidth=2)
             axarr[0,0].set_title('Estimated density (1st)', fontsize=20)
 
             # second order model
             axarr[0,1].step(x_grid, np.concatenate([[0], mean_density_2nd[t_row, :]]),
                             color='g', linewidth=2, label='2nd')
-            axarr[0,1].step(x_grid, np.concatenate([[0], mean_density_2nd[t_row, :]-2*std_density_2nd[t_row,:]]),
+            axarr[0,1].step(x_grid, np.concatenate([[0], mean_density_2nd[t_row, :]-conf_intrvl*std_density_2nd[t_row,:]]),
                             color='g', linestyle='--', linewidth=2)
-            axarr[0,1].step(x_grid, np.concatenate([[0], mean_density_2nd[t_row, :]+2*std_density_2nd[t_row,:]]),
+            axarr[0,1].step(x_grid, np.concatenate([[0], mean_density_2nd[t_row, :]+conf_intrvl*std_density_2nd[t_row,:]]),
                             color='g', linestyle='--', linewidth=2)
             axarr[0,1].set_title('Estimated density (2nd)', fontsize=20)
 
@@ -155,9 +160,9 @@ def main(argv):
             # second order
             axarr[1,1].step(x_grid, 100.0*np.concatenate([[0], mean_w_2nd[t_row, :]]),
                             color='g', linewidth=2, label='2nd')
-            axarr[1,1].step(x_grid, 100.0*np.concatenate([[0], mean_w_2nd[t_row, :]-2*std_w_2nd[t_row,:]]),
+            axarr[1,1].step(x_grid, 100.0*np.concatenate([[0], mean_w_2nd[t_row, :]-conf_intrvl*std_w_2nd[t_row,:]]),
                             color='g', linestyle='--', linewidth=2)
-            axarr[1,1].step(x_grid, 100.0*np.concatenate([[0], mean_w_2nd[t_row, :]+2*std_w_2nd[t_row,:]]),
+            axarr[1,1].step(x_grid, 100.0*np.concatenate([[0], mean_w_2nd[t_row, :]+conf_intrvl*std_w_2nd[t_row,:]]),
                             color='g', linestyle='--', linewidth=2)
             axarr[1,1].set_title('Fraction of AVs (2nd)', fontsize=20)
 

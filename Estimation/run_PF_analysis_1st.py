@@ -3,7 +3,7 @@ import sys
 import time
 from os.path import exists
 import matplotlib
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from numpy import *
 
@@ -170,7 +170,7 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
 
     # TODO: Tuning the noise ===============================
     modelNoiseMean = 0.0
-    modelNoiseStd = 15.0
+    modelNoiseStd = 13.0
 
     densityMeaMean = 0.0
     densityMeaStd = 10.0
@@ -278,16 +278,24 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                         boundDensMeaMean = 0.0
                         boundDensMeaStd = 3.0
 
+                        # if modelMarker == '2nd':
+                        #     bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                        #            max([0.0, bdl[1] + random.normal(wMeaMean, wMeaStd)]))
+                        #     bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                        #            max([0.0, bdr[1] + random.normal(wMeaMean, wMeaStd)]))
+                        # else:
+                        #     bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                        #            bdl[1])
+                        #     bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
+                        #            bdr[1])
                         if modelMarker == '2nd':
-                            bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
-                                   max([0.0, bdl[1] + random.normal(wMeaMean, wMeaStd)]))
-                            bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
-                                   max([0.0, bdr[1] + random.normal(wMeaMean, wMeaStd)]))
+                            bdl = ( bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd),
+                                    bdl[1] + random.normal(wMeaMean, wMeaStd))
+                            bdr = ( bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd),
+                                    bdr[1] + random.normal(wMeaMean, wMeaStd))
                         else:
-                            bdl = (max([0.0, bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
-                                   bdl[1])
-                            bdr = (max([0.0, bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd)]),
-                                   bdr[1])
+                            bdl = ( bdl[0] + random.normal(boundDensMeaMean, boundDensMeaStd), bdl[1])
+                            bdr = ( bdr[0] + random.normal(boundDensMeaMean, boundDensMeaStd), bdr[1])
                         # TODO: Added measurement noise to the boundary conditions =================
 
                         # eveolve the model prediction
@@ -295,7 +303,11 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                                                  inflow=-1.0, outflow=-1.0)
                         # TODO: Added model noise to the boundary w =================
                         if modelMarker == '2nd':
-                            w[j] = w[j] + random.normal(0, 0.01, len(w[j]))
+                            _w = w[j] + random.normal(0, 0.01, len(w[j]))
+                            # bound w
+                            _w[_w>= 1.0 ] = 1.0
+                            _w[_w<= 0.0 ] = 0.0
+                            w[j] = _w
                         # TODO: Added model noise to the boundary w =================
 
                     densityMea = densityMeasurement[k]
@@ -317,7 +329,7 @@ def run_estimators(fdpNB, rhoc1st, directoryLoad, directorySave, sample, sensorL
                             if False:
                                 plt.show()
                             else:
-                                fig_dir = os.getcwd() + '/figs_PF_analysis/'
+                                fig_dir = os.getcwd() + '/figs_PF_analysis/1st_2/'
                                 plt.savefig(fig_dir + '{0:05d}.png'.format(int(k*5)), bbox_inches='tight')
                                 plt.clf()
                                 plt.close()
